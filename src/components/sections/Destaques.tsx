@@ -1,0 +1,76 @@
+"use client";
+
+import Image from "next/image";
+import { motion, useInView } from "framer-motion";
+import { useRef } from "react";
+
+const destaques = [
+  { id: 1, name: "Shake Mix Frutas Vermelhas", tag: "Novidade", image: "/imagens_originais/produtos_capa_shakemix_01.png" },
+  { id: 2, name: "Cascão Trufado", tag: "Mais Pedido", image: "/imagens_originais/cardapio_1.png" },
+  { id: 3, name: "Sundae Clássico", tag: "Tradicional", image: "/imagens_originais/cardapio_4.png" },
+  { id: 4, name: "Shake Mix Chocotino", tag: "Crocante", image: "/imagens_originais/chiquinho_milkshake_chocotino.png" },
+];
+
+export function Destaques() {
+  const ref = useRef(null);
+  const isInView = useInView(ref, { once: true, margin: "-100px" });
+
+  return (
+    <section id="destaques" className="py-24 bg-white overflow-hidden perspective-1000">
+      <div className="max-w-6xl mx-auto px-6">
+        
+        <motion.div 
+          ref={ref}
+          initial={{ opacity: 0, y: 30 }}
+          animate={isInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 30 }}
+          transition={{ duration: 0.6 }}
+          className="text-center mb-16"
+        >
+          <span className="text-brand-red text-xs font-bold uppercase tracking-[0.2em] mb-3 block">Nossos Destaques</span>
+          <h2 className="text-4xl md:text-5xl lg:text-6xl font-display font-black text-ink-900 tracking-tight mb-6">
+            O sabor que o Brasil <em className="text-brand-red not-italic italic">ama</em>
+          </h2>
+          <p className="text-ink-500 max-w-md mx-auto leading-relaxed text-lg">
+            A combinação perfeita da nossa exclusividade com os ingredientes mais desejados.
+          </p>
+        </motion.div>
+
+        <div className="flex overflow-x-auto gap-6 pb-12 snap-x snap-mandatory pt-4 px-4 -mx-4 hide-scrollbar">
+          {destaques.map((item, i) => (
+            <motion.div 
+              key={item.id}
+              initial={{ opacity: 0, y: 50, rotateX: -10 }}
+              animate={isInView ? { opacity: 1, y: 0, rotateX: 0 } : { opacity: 0, y: 50, rotateX: -10 }}
+              transition={{ duration: 0.7, delay: i * 0.15 }}
+              className="group relative flex-none w-[280px] snap-start bg-white border border-ink-100/60 rounded-[28px] overflow-hidden shadow-sm hover:shadow-2xl hover:-translate-y-2 transition-all duration-500 cursor-pointer isolate"
+            >
+              {/* Expandable Hover Background */}
+              <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-8 h-8 bg-brand-soft/80 rounded-full opacity-0 blur-xl group-hover:blur-3xl group-hover:scale-[15] group-hover:opacity-100 transition-all duration-700 ease-[cubic-bezier(0.16,1,0.3,1)] pointer-events-none -z-10" />
+              
+              <div className="relative h-[240px] flex items-center justify-center bg-cream-50 overflow-visible z-10 transition-colors duration-500 group-hover:bg-transparent">
+                <Image 
+                  src={item.image} 
+                  alt={item.name} 
+                  width={250} 
+                  height={250} 
+                  className="max-h-[190px] w-auto drop-shadow-md z-20 group-hover:scale-[1.15] group-hover:-translate-y-3 group-hover:drop-shadow-[0_25px_30px_rgba(168,21,31,0.25)] transition-all duration-500 ease-[cubic-bezier(0.16,1,0.3,1)]" 
+                />
+              </div>
+
+              <div className="p-6 relative z-10 bg-white">
+                <div className="flex items-center justify-between mb-3">
+                  <span className="text-brand-red text-[10px] font-bold uppercase tracking-widest">{item.tag}</span>
+                  <div className="w-8 h-8 rounded-full bg-cream-50 flex items-center justify-center text-ink-300 group-hover:bg-brand-red group-hover:text-white transition-colors duration-300">
+                    <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+                  </div>
+                </div>
+                <h3 className="font-display font-bold text-ink-900 text-xl leading-tight">{item.name}</h3>
+              </div>
+            </motion.div>
+          ))}
+        </div>
+
+      </div>
+    </section>
+  );
+}
