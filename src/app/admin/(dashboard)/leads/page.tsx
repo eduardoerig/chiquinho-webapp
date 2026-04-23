@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState, useMemo, useCallback } from "react";
 import { createClient } from "@/utils/supabase/client";
-import { Search, Mail, Phone, Calendar } from "lucide-react";
+import { Search, Mail, Phone, Calendar, Download, ChevronDown } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 interface Lead {
   id: string;
@@ -14,9 +15,23 @@ interface Lead {
   created_at: string;
 }
 
+const statusOptions = [
+  { value: "novo", label: "Novo", color: "bg-blue-100 text-blue-800" },
+  { value: "contatado", label: "Contatado", color: "bg-amber-100 text-amber-800" },
+  { value: "convertido", label: "Convertido", color: "bg-green-100 text-green-800" },
+  { value: "descartado", label: "Descartado", color: "bg-ink-100 text-ink-500" },
+];
+
+function getStatusStyle(status: string) {
+  return statusOptions.find(s => s.value === status)?.color || "bg-blue-100 text-blue-800";
+}
+
 export default function LeadsAdmin() {
   const [leads, setLeads] = useState<Lead[]>([]);
   const [loading, setLoading] = useState(true);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [statusFilter, setStatusFilter] = useState("todos");
+  const [openDropdownId, setOpenDropdownId] = useState<string | null>(null);
   const supabase = useMemo(() => createClient(), []);
 
   useEffect(() => {
@@ -31,6 +46,72 @@ export default function LeadsAdmin() {
     })();
   }, [supabase]);
 
+  const filteredLeads = useMemo(() => {
+    return leads.filter(lead => {
+      const search = searchTerm.toLowerCase();
+      const matchesSearch =
+        lead.name.toLowerCase().includes(search) ||
+        lead.email.toLowerCase().includes(search) ||
+        lead.message?.toLowerCase().includes(search) ||
+        lead.status.toLowerCase().includes(search);
+      const matchesStatus = statusFilter === "todos" || lead.status === statusFilter;
+      return matchesSearch && matchesStatus;
+    });
+  }, [leads, searchTerm, statusFilter]);
+
+  const handleStatusChange = useCallback(async (leadId: string, newStatus: string) => {
+    setOpenDropdownId(null);
+    
+    // Atualiza otimisticamente
+    setLeads(prev => prev.map(l => l.id === leadId ? { ...l, status: newStatus } : l));
+
+    const { error } = await supabase
+      .from('leads')
+      .update({ status: newStatus })
+      .eq('id', leadId);
+
+    if (error) {
+      console.error('Erro ao atualizar status:', error);
+      // Reverte em caso de erro — refetch
+      const { data } = await supabase.from('leads').select('*').order('created_at', { ascending: false });
+      if (data) setLeads(data);
+    }
+  }, [supabase]);
+
+  const handleExportCSV = useCallback(() => {
+    const headers = ["Nome", "Email", "Telefone", "Mensagem", "Status", "Data"];
+    const rows = filteredLeads.map(l => [
+      l.name,
+      l.email,
+      l.phone || "",
+      (l.message || "").replace(/"/g, '""'),
+      l.status,
+      new Date(l.created_at).toLocaleDateString('pt-BR'),
+    ]);
+
+    const csv = [
+      headers.join(","),
+      ...rows.map(r => r.map(cell => `"${cell}"`).join(","))
+    ].join("\n");
+
+    const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `leads-chiquinho-${new Date().toISOString().split('T')[0]}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }, [filteredLeads]);
+
+  // Fechar dropdown ao clicar fora
+  useEffect(() => {
+    const handleClick = () => setOpenDropdownId(null);
+    if (openDropdownId) {
+      document.addEventListener("click", handleClick);
+      return () => document.removeEventListener("click", handleClick);
+    }
+  }, [openDropdownId]);
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
@@ -38,18 +119,47 @@ export default function LeadsAdmin() {
           <h1 className="text-3xl font-display font-black text-ink-900 tracking-tight">Leads (Franquia)</h1>
           <p className="text-ink-500 mt-1">Gerencie os contatos recebidos pelo formulário do site.</p>
         </div>
+        <button
+          onClick={handleExportCSV}
+          disabled={filteredLeads.length === 0}
+          className="flex items-center gap-2 bg-white border border-ink-200 text-ink-700 px-5 py-2.5 rounded-xl font-bold text-sm hover:border-green-400 hover:text-green-700 hover:bg-green-50 transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+        >
+          <Download className="w-4 h-4" />
+          Exportar CSV
+        </button>
       </div>
 
       <div className="bg-white border border-ink-100 rounded-2xl shadow-sm overflow-hidden flex flex-col">
-        <div className="p-4 border-b border-ink-100 flex items-center gap-3">
-          <div className="relative flex-1 max-w-md">
+        <div className="p-4 border-b border-ink-100 flex flex-col sm:flex-row items-start sm:items-center gap-3">
+          <div className="relative flex-1 max-w-md w-full">
             <Search className="w-5 h-5 absolute left-3 top-1/2 -translate-y-1/2 text-ink-300" />
             <input 
               type="text" 
               placeholder="Buscar por nome ou email..." 
+              value={searchTerm}
+              onChange={e => setSearchTerm(e.target.value)}
               className="w-full pl-10 pr-4 py-2 border border-ink-200 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-brand-red focus:border-brand-red"
             />
           </div>
+          <div className="flex items-center gap-2">
+            {["todos", ...statusOptions.map(s => s.value)].map(s => (
+              <button
+                key={s}
+                onClick={() => setStatusFilter(s)}
+                className={cn(
+                  "px-3 py-1.5 rounded-lg text-xs font-bold transition-all capitalize",
+                  statusFilter === s
+                    ? "bg-brand-red text-white"
+                    : "bg-cream-50 text-ink-500 hover:bg-cream-100"
+                )}
+              >
+                {s === "todos" ? "Todos" : statusOptions.find(opt => opt.value === s)?.label || s}
+              </button>
+            ))}
+          </div>
+          <span className="text-xs text-ink-400 font-medium ml-auto whitespace-nowrap">
+            {filteredLeads.length} lead{filteredLeads.length !== 1 ? 's' : ''}
+          </span>
         </div>
 
         <div className="overflow-x-auto">
@@ -66,10 +176,10 @@ export default function LeadsAdmin() {
             <tbody className="divide-y divide-ink-100">
               {loading ? (
                 <tr><td colSpan={5} className="p-8 text-center text-ink-400">Carregando leads...</td></tr>
-              ) : leads.length === 0 ? (
-                <tr><td colSpan={5} className="p-8 text-center text-ink-400">Nenhum formulário recebido ainda.</td></tr>
+              ) : filteredLeads.length === 0 ? (
+                <tr><td colSpan={5} className="p-8 text-center text-ink-400">Nenhum lead encontrado.</td></tr>
               ) : (
-                leads.map((lead) => (
+                filteredLeads.map((lead) => (
                   <tr key={lead.id} className="hover:bg-cream-50/50 transition-colors">
                     <td className="px-6 py-4">
                       <p className="font-bold text-ink-900 text-sm">{lead.name}</p>
@@ -92,9 +202,42 @@ export default function LeadsAdmin() {
                       </div>
                     </td>
                     <td className="px-6 py-4">
-                      <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800 capitalize">
-                        {lead.status}
-                      </span>
+                      <div className="relative">
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setOpenDropdownId(openDropdownId === lead.id ? null : lead.id);
+                          }}
+                          className={cn(
+                            "inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold capitalize cursor-pointer transition-all hover:ring-2 hover:ring-offset-1 hover:ring-ink-200",
+                            getStatusStyle(lead.status)
+                          )}
+                        >
+                          {lead.status}
+                          <ChevronDown className="w-3 h-3" />
+                        </button>
+                        
+                        {openDropdownId === lead.id && (
+                          <div 
+                            className="absolute right-0 top-full mt-1 bg-white border border-ink-100 rounded-xl shadow-xl z-20 py-1 min-w-[140px]"
+                            onClick={e => e.stopPropagation()}
+                          >
+                            {statusOptions.map(opt => (
+                              <button
+                                key={opt.value}
+                                onClick={() => handleStatusChange(lead.id, opt.value)}
+                                className={cn(
+                                  "w-full text-left px-4 py-2 text-sm font-medium hover:bg-cream-50 transition-colors flex items-center gap-2",
+                                  lead.status === opt.value ? "text-brand-red font-bold" : "text-ink-700"
+                                )}
+                              >
+                                <span className={cn("w-2 h-2 rounded-full", opt.color.split(" ")[0])} />
+                                {opt.label}
+                              </button>
+                            ))}
+                          </div>
+                        )}
+                      </div>
                     </td>
                   </tr>
                 ))

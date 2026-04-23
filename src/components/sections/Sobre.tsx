@@ -4,15 +4,22 @@ import Image from "next/image";
 import { motion, useInView } from "framer-motion";
 import { useRef } from "react";
 
-export function Sobre() {
+interface SobreProps {
+  settings?: Record<string, string>;
+}
+
+export function Sobre({ settings }: SobreProps) {
   const ref = useRef(null);
   const isInView = useInView(ref, { once: true, margin: "-100px" });
+
+  const title = settings?.history_title || "Nossa História";
+  const text = settings?.history_text || "A Chiquinho Sorvetes nasceu em 1980, em Frutal/MG, com o sonho de levar alegria através do sorvete mais saboroso e cremoso.";
 
   return (
     <section id="sobre" className="py-24 bg-white relative overflow-hidden">
       <div className="max-w-7xl mx-auto px-6">
         
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 md:gap-16 items-center">
           
           <motion.div 
             ref={ref}
@@ -21,18 +28,14 @@ export function Sobre() {
             transition={{ duration: 0.8 }}
           >
             <span className="text-brand-red text-xs font-bold uppercase tracking-[0.2em] mb-4 block">A Nossa História</span>
-            <h2 className="text-4xl md:text-5xl lg:text-[56px] leading-[1.1] font-display font-black text-ink-900 tracking-tight mb-8">
-              Uma receita de <br/>
-              <em className="text-brand-red not-italic italic">família</em> para o mundo.
+            <h2 className="text-3xl md:text-5xl lg:text-[56px] leading-[1.1] font-display font-black text-ink-900 tracking-tight mb-8">
+              {title}
             </h2>
             
             <div className="space-y-6 text-ink-500 text-lg leading-relaxed mb-10">
-              <p>
-                Tudo começou na década de 80, em Frutal/MG, quando o <strong className="text-ink-900 font-bold">&ldquo;Seu Francisco&rdquo;</strong>, apelidado carinhosamente de Chiquinho, abriu uma modesta sorveteria.
-              </p>
-              <p>
-                O que era um pequeno negócio familiar prosperou graças a uma <strong className="text-brand-red font-bold">receita secreta</strong> de um sorvete macio, saboroso e inconfundível. Da invenção e do primeiro batedor de sorvetes feito à mão, a paixão só cresceu.
-              </p>
+              {text.split('\n').map((paragraph, i) => (
+                <p key={i}>{paragraph}</p>
+              ))}
             </div>
 
             <div className="flex gap-4">
@@ -60,11 +63,11 @@ export function Sobre() {
               />
             </div>
             {/* Decal */}
-            <div className="absolute -bottom-6 -left-6 bg-white p-4 rounded-3xl shadow-xl z-20 flex items-center gap-4">
-              <div className="w-12 h-12 bg-brand-red rounded-full flex items-center justify-center text-white font-bold text-xl">80</div>
+            <div className="absolute -bottom-4 -left-2 md:-bottom-6 md:-left-6 bg-white p-3 md:p-4 rounded-2xl md:rounded-3xl shadow-xl z-20 flex items-center gap-3 md:gap-4">
+              <div className="w-10 h-10 md:w-12 md:h-12 bg-brand-red rounded-full flex items-center justify-center text-white font-bold text-lg md:text-xl">80</div>
               <div>
-                <div className="text-xs text-ink-400 font-bold uppercase tracking-widest leading-none">Década</div>
-                <div className="font-display font-bold text-ink-900 text-lg">De Origem</div>
+                <div className="text-[10px] md:text-xs text-ink-400 font-bold uppercase tracking-widest leading-none">Década</div>
+                <div className="font-display font-bold text-ink-900 text-base md:text-lg">De Origem</div>
               </div>
             </div>
           </motion.div>

@@ -5,7 +5,11 @@ import { cn } from "@/lib/utils";
 import Image from "next/image";
 import { motion, AnimatePresence } from "framer-motion";
 
-export function Navbar() {
+interface NavbarProps {
+  settings?: Record<string, string>;
+}
+
+export function Navbar({ settings }: NavbarProps) {
   const [scrolled, setScrolled] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
 
@@ -14,6 +18,8 @@ export function Navbar() {
     window.addEventListener("scroll", handleScroll, { passive: true });
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
+
+  const ifoodLink = settings?.marketing_ifood_link || "https://www.ifood.com.br/delivery/descobrir/lista/chain:fabf2493-6ce0-4534-8cce-c4ae743a59d1";
 
   return (
     <>
@@ -36,11 +42,11 @@ export function Navbar() {
 
           <div className="hidden md:flex items-center gap-8">
             <a href="#hero-section" className="nav-link text-ink-500 font-semibold text-sm hover:text-brand-red transition-colors relative">Início</a>
-            <a href="#produtos" className="nav-link text-ink-500 font-semibold text-sm hover:text-brand-red transition-colors relative">Produtos</a>
+            <a href="#cardapio" className="nav-link text-ink-500 font-semibold text-sm hover:text-brand-red transition-colors relative">Cardápio</a>
             <a href="#sobre" className="nav-link text-ink-500 font-semibold text-sm hover:text-brand-red transition-colors relative">Nossa História</a>
-            <a href="https://chiquinho.com.br/nossas-lojas/" target="_blank" rel="noreferrer" className="nav-link text-ink-500 font-semibold text-sm hover:text-brand-red transition-colors relative">Lojas</a>
+            <a href="#franquia" className="nav-link text-ink-500 font-semibold text-sm hover:text-brand-red transition-colors relative">Franquia</a>
             <a
-              href="https://www.ifood.com.br/delivery/descobrir/lista/chain:fabf2493-6ce0-4534-8cce-c4ae743a59d1"
+              href={ifoodLink}
               target="_blank"
               rel="noreferrer"
               className="flex items-center gap-2 bg-brand-red text-white text-sm font-bold tracking-wide px-6 py-2.5 rounded-full shadow-brand hover:-translate-y-0.5 hover:shadow-xl hover:bg-brand-dark transition-all duration-300"
@@ -71,14 +77,14 @@ export function Navbar() {
             className="fixed inset-0 z-[90] bg-white/95 backdrop-blur-2xl flex flex-col items-center justify-center gap-6"
           >
             <motion.a initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} href="#hero-section" onClick={() => setMenuOpen(false)} className="text-3xl font-display font-medium text-ink-900 tracking-tight hover:text-brand-red transition-colors">Início</motion.a>
-            <motion.a initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }} href="#produtos" onClick={() => setMenuOpen(false)} className="text-3xl font-display font-medium text-ink-900 tracking-tight hover:text-brand-red transition-colors">Produtos</motion.a>
+            <motion.a initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }} href="#cardapio" onClick={() => setMenuOpen(false)} className="text-3xl font-display font-medium text-ink-900 tracking-tight hover:text-brand-red transition-colors">Cardápio</motion.a>
             <motion.a initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} href="#sobre" onClick={() => setMenuOpen(false)} className="text-3xl font-display font-medium text-ink-900 tracking-tight hover:text-brand-red transition-colors">História</motion.a>
-            <motion.a initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.25 }} href="https://chiquinho.com.br/nossas-lojas/" target="_blank" rel="noreferrer" className="text-3xl font-display font-medium text-ink-900 tracking-tight hover:text-brand-red transition-colors">Lojas</motion.a>
+            <motion.a initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.25 }} href="#franquia" onClick={() => setMenuOpen(false)} className="text-3xl font-display font-medium text-ink-900 tracking-tight hover:text-brand-red transition-colors">Franquia</motion.a>
             <motion.a 
               initial={{ opacity: 0, y: 20, scale: 0.9 }} 
               animate={{ opacity: 1, y: 0, scale: 1 }} 
               transition={{ delay: 0.35, ease: "backOut" }}
-              href="https://www.ifood.com.br/delivery/descobrir/lista/chain:fabf2493-6ce0-4534-8cce-c4ae743a59d1" 
+              href={ifoodLink} 
               target="_blank" 
               rel="noreferrer" 
               className="mt-6 flex items-center gap-2 bg-brand-red text-white text-lg font-bold px-8 py-4 rounded-full shadow-brand hover:scale-105 transition-transform"

@@ -3,7 +3,7 @@
 import { useEffect, useState, useMemo, useCallback } from "react";
 import Image from "next/image";
 import { createClient } from "@/utils/supabase/client";
-import { Plus, Edit2, Trash2, Search, IceCream, X, Save } from "lucide-react";
+import { Plus, Edit2, Trash2, Search, IceCream, X, Save, Upload, Loader2 } from "lucide-react";
 
 interface Category {
   id: string;
@@ -42,6 +42,9 @@ export default function ProductsAdmin() {
     is_featured: false
   });
   const [isSaving, setIsSaving] = useState(false);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [uploadProgress, setUploadProgress] = useState(false);
+  const [searchTerm, setSearchTerm] = useState("");
 
   const fetchProducts = useCallback(async () => {
     const { data, error } = await supabase
@@ -63,19 +66,10 @@ export default function ProductsAdmin() {
       // Carrega categorias
       const { data: cats } = await supabase.from('categories').select('*');
       if (cats) setCategories(cats);
-      // Carrega produtos
-      const { data, error } = await supabase
-        .from('products')
-        .select('*, categories(label)')
-        .order('created_at', { ascending: false });
-      if (error) {
-        console.error('Erro ao buscar produtos:', error);
-        alert(`Erro ao buscar produtos: ${error.message}`);
-      }
-      if (data) setProducts(data);
-      setLoading(false);
+      // Carrega produtos (usa o callback memoizado)
+      await fetchProducts();
     })();
-  }, [supabase]);
+  }, [supabase, fetchProducts]);
 
   async function handleDelete(id: string) {
     if (confirm("Tem certeza que deseja excluir este produto?")) {
@@ -95,6 +89,7 @@ export default function ProductsAdmin() {
     setFormData({
       title: "", description: "", tag: "", image_url: "", category_id: categories[0]?.id || "", is_featured: false
     });
+    setSelectedFile(null);
     setIsModalOpen(true);
   }
 
@@ -109,7 +104,29 @@ export default function ProductsAdmin() {
       category_id: product.category_id || "",
       is_featured: product.is_featured || false
     });
+    setSelectedFile(null);
     setIsModalOpen(true);
+  }
+
+  async function uploadImage(file: File): Promise<string | null> {
+    const fileExt = file.name.split('.').pop();
+    const fileName = `${Math.random().toString(36).substring(2)}-${Date.now()}.${fileExt}`;
+    const filePath = `${fileName}`;
+
+    const { error: uploadError } = await supabase.storage
+      .from('products')
+      .upload(filePath, file);
+
+    if (uploadError) {
+      console.error('Erro ao subir imagem:', uploadError);
+      return null;
+    }
+
+    const { data: { publicUrl } } = supabase.storage
+      .from('products')
+      .getPublicUrl(filePath);
+
+    return publicUrl;
   }
 
   async function handleSaveProduct() {
@@ -120,8 +137,25 @@ export default function ProductsAdmin() {
 
     setIsSaving(true);
 
+    let finalImageUrl = formData.image_url;
+
+    // Se houver um arquivo selecionado, faz o upload primeiro
+    if (selectedFile) {
+      setUploadProgress(true);
+      const uploadedUrl = await uploadImage(selectedFile);
+      setUploadProgress(false);
+      
+      if (!uploadedUrl) {
+        alert('Erro ao fazer upload da imagem. O produto não será salvo.');
+        setIsSaving(false);
+        return;
+      }
+      finalImageUrl = uploadedUrl;
+    }
+
     const payload = {
       ...formData,
+      image_url: finalImageUrl,
       category_id: formData.category_id === "" ? null : formData.category_id
     };
 
@@ -138,13 +172,25 @@ export default function ProductsAdmin() {
     setIsSaving(false);
 
     if (errorResult) {
-      alert(`Erro ao salvar produto: ${errorResult.message}\n\nVerifique se você está autenticado e se as políticas RLS estão configuradas no Supabase.`);
+      alert(`Erro ao salvar produto: ${errorResult.message}`);
       console.error('Supabase error:', errorResult);
     } else {
       setIsModalOpen(false);
       fetchProducts();
     }
   }
+
+  const filteredProducts = useMemo(() => {
+    return products.filter(product => {
+      const search = searchTerm.toLowerCase();
+      return (
+        product.title.toLowerCase().includes(search) ||
+        product.description?.toLowerCase().includes(search) ||
+        product.tag?.toLowerCase().includes(search) ||
+        product.categories?.label.toLowerCase().includes(search)
+      );
+    });
+  }, [products, searchTerm]);
 
   return (
     <>
@@ -164,15 +210,20 @@ export default function ProductsAdmin() {
       </div>
 
       <div className="bg-white border border-ink-100 rounded-2xl shadow-sm overflow-hidden flex flex-col">
-        <div className="p-4 border-b border-ink-100 flex items-center gap-3">
+        <div className="p-4 border-b border-ink-100 flex items-center justify-between gap-3">
           <div className="relative flex-1 max-w-md">
             <Search className="w-5 h-5 absolute left-3 top-1/2 -translate-y-1/2 text-ink-300" />
             <input 
               type="text" 
               placeholder="Buscar produtos..." 
+              value={searchTerm}
+              onChange={e => setSearchTerm(e.target.value)}
               className="w-full pl-10 pr-4 py-2 border border-ink-200 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-brand-red focus:border-brand-red"
             />
           </div>
+          <span className="text-xs text-ink-400 font-medium whitespace-nowrap">
+            {filteredProducts.length} {filteredProducts.length === 1 ? 'produto' : 'produtos'}
+          </span>
         </div>
 
         <div className="overflow-x-auto">
@@ -189,10 +240,10 @@ export default function ProductsAdmin() {
             <tbody className="divide-y divide-ink-100">
               {loading ? (
                 <tr><td colSpan={5} className="p-8 text-center text-ink-400">Carregando produtos...</td></tr>
-              ) : products.length === 0 ? (
-                <tr><td colSpan={5} className="p-8 text-center text-ink-400">Nenhum produto cadastrado.</td></tr>
+              ) : filteredProducts.length === 0 ? (
+                <tr><td colSpan={5} className="p-8 text-center text-ink-400">Nenhum produto encontrado.</td></tr>
               ) : (
-                products.map((product) => (
+                filteredProducts.map((product) => (
                   <tr key={product.id} className="hover:bg-cream-50/50 transition-colors">
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-4">
@@ -251,8 +302,8 @@ export default function ProductsAdmin() {
 
       {/* Modal */}
       {isModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-ink-900/50 backdrop-blur-sm">
-          <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg overflow-hidden flex flex-col max-h-[90vh]">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-ink-900/50 backdrop-blur-sm" onClick={() => setIsModalOpen(false)}>
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg overflow-hidden flex flex-col max-h-[90vh]" onClick={e => e.stopPropagation()}>
             <div className="p-6 border-b border-ink-100 flex items-center justify-between">
               <h2 className="text-xl font-bold text-ink-900">
                 {modalMode === 'create' ? 'Novo Produto' : 'Editar Produto'}
@@ -311,14 +362,70 @@ export default function ProductsAdmin() {
               </div>
 
               <div>
-                <label className="block text-sm font-bold text-ink-700 mb-1">URL da Imagem</label>
-                <input 
-                  type="text" 
-                  value={formData.image_url}
-                  onChange={e => setFormData({...formData, image_url: e.target.value})}
-                  placeholder="https://..."
-                  className="w-full px-4 py-2 border border-ink-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-red/20 focus:border-brand-red"
-                />
+                <label className="block text-sm font-bold text-ink-700 mb-1">Imagem do Produto</label>
+                <div className="flex flex-col gap-3">
+                  {/* Preview da Imagem */}
+                  {(selectedFile || formData.image_url) && (
+                    <div className="relative w-full h-40 bg-cream-50 rounded-xl border border-ink-100 overflow-hidden group">
+                      <Image 
+                        src={selectedFile ? URL.createObjectURL(selectedFile) : formData.image_url} 
+                        alt="Preview" 
+                        fill
+                        className="object-contain p-2"
+                      />
+                      <button 
+                        type="button"
+                        onClick={() => {
+                          setSelectedFile(null);
+                          setFormData({...formData, image_url: ""});
+                        }}
+                        className="absolute top-2 right-2 p-1.5 bg-white/80 backdrop-blur shadow-sm rounded-full text-red-500 opacity-0 group-hover:opacity-100 transition-opacity"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
+                  )}
+
+                  {/* Input de Arquivo */}
+                  <div className="relative">
+                    <input 
+                      type="file" 
+                      accept="image/*"
+                      onChange={e => {
+                        const file = e.target.files?.[0];
+                        if (file) setSelectedFile(file);
+                      }}
+                      className="hidden" 
+                      id="product-image-upload"
+                    />
+                    <label 
+                      htmlFor="product-image-upload"
+                      className="flex items-center justify-center gap-2 w-full px-4 py-3 border-2 border-dashed border-ink-200 rounded-xl hover:border-brand-red hover:bg-cream-50 transition-all cursor-pointer group"
+                    >
+                      <Upload className="w-5 h-5 text-ink-400 group-hover:text-brand-red" />
+                      <span className="text-sm font-bold text-ink-600 group-hover:text-brand-red">
+                        {selectedFile ? 'Alterar Imagem' : 'Selecionar Imagem do Computador'}
+                      </span>
+                    </label>
+                    <p className="text-[10px] text-ink-400 mt-1 px-1">
+                      * Recomendado: Resolução quadrada (1:1), ex: 800x800px. Preferência por fundo transparente (PNG).
+                    </p>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <div className="h-px bg-ink-100 flex-1"></div>
+                    <span className="text-[10px] uppercase font-bold text-ink-300">ou use um link externo</span>
+                    <div className="h-px bg-ink-100 flex-1"></div>
+                  </div>
+
+                  <input 
+                    type="text" 
+                    value={formData.image_url}
+                    onChange={e => setFormData({...formData, image_url: e.target.value})}
+                    placeholder="https://exemplo.com/imagem.png"
+                    className="w-full px-4 py-2 border border-ink-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-red/20 focus:border-brand-red text-xs"
+                  />
+                </div>
               </div>
 
               <div className="flex items-center gap-2 mt-2">
@@ -344,11 +451,15 @@ export default function ProductsAdmin() {
               </button>
               <button 
                 onClick={handleSaveProduct}
-                disabled={isSaving}
+                disabled={isSaving || uploadProgress}
                 className="flex items-center gap-2 px-5 py-2.5 text-sm font-bold text-white bg-brand-red hover:bg-brand-red/90 rounded-xl transition-colors disabled:opacity-50"
               >
-                <Save className="w-4 h-4" />
-                {isSaving ? 'Salvando...' : 'Salvar'}
+                {isSaving || uploadProgress ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <Save className="w-4 h-4" />
+                )}
+                {uploadProgress ? 'Subindo Imagem...' : isSaving ? 'Salvando...' : 'Salvar'}
               </button>
             </div>
           </div>

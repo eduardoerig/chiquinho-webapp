@@ -2,10 +2,11 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, IceCream, Tags, Users, Settings, LogOut } from "lucide-react";
+import { LayoutDashboard, IceCream, Tags, Users, Settings, LogOut, ExternalLink, Menu, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { createClient } from "@/utils/supabase/client";
 import { useRouter } from "next/navigation";
+import { useState, useEffect } from "react";
 
 const menuItems = [
   { name: "Visão Geral", icon: LayoutDashboard, path: "/admin" },
@@ -18,18 +19,37 @@ const menuItems = [
 export function Sidebar() {
   const pathname = usePathname();
   const router = useRouter();
+  const [mobileOpen, setMobileOpen] = useState(false);
+
+  // Fechar sidebar ao mudar de rota
+  useEffect(() => {
+    setMobileOpen(false);
+  }, [pathname]);
+
+  // Impedir scroll do body quando sidebar mobile está aberta
+  useEffect(() => {
+    document.body.style.overflow = mobileOpen ? "hidden" : "";
+    return () => { document.body.style.overflow = ""; };
+  }, [mobileOpen]);
 
   const handleLogout = async () => {
-    // Simulando logout ou fazendo real caso tenha Auth
     const supabase = createClient();
     await supabase.auth.signOut();
     router.push("/admin/login");
   };
 
-  return (
-    <aside className="w-64 bg-white border-r border-ink-100 min-h-screen flex flex-col">
-      <div className="h-20 flex items-center px-8 border-b border-ink-100">
+  const sidebarContent = (
+    <>
+      <div className="h-20 flex items-center px-8 border-b border-ink-100 justify-between">
         <span className="text-xl font-display font-black text-brand-red tracking-tight">Chiquinho <span className="text-ink-900">Admin</span></span>
+        {/* Botão fechar apenas no mobile */}
+        <button
+          onClick={() => setMobileOpen(false)}
+          className="md:hidden p-2 rounded-lg text-ink-400 hover:bg-cream-50 hover:text-ink-900 transition-colors"
+          aria-label="Fechar menu"
+        >
+          <X className="w-5 h-5" />
+        </button>
       </div>
 
       <nav className="flex-1 py-8 px-4 space-y-2">
@@ -53,7 +73,16 @@ export function Sidebar() {
         })}
       </nav>
 
-      <div className="p-4 border-t border-ink-100">
+      <div className="p-4 border-t border-ink-100 space-y-1">
+        <a 
+          href="/" 
+          target="_blank"
+          rel="noreferrer"
+          className="flex items-center gap-3 px-4 py-3 w-full rounded-xl text-ink-500 hover:bg-blue-50 hover:text-blue-600 transition-colors text-sm font-medium"
+        >
+          <ExternalLink className="w-5 h-5" />
+          Ver Site
+        </a>
         <button 
           onClick={handleLogout}
           className="flex items-center gap-3 px-4 py-3 w-full rounded-xl text-ink-500 hover:bg-red-50 hover:text-brand-red transition-colors text-sm font-medium"
@@ -62,6 +91,42 @@ export function Sidebar() {
           Sair do Sistema
         </button>
       </div>
-    </aside>
+    </>
+  );
+
+  return (
+    <>
+      {/* Hamburger button — visible only on mobile */}
+      <button
+        onClick={() => setMobileOpen(true)}
+        className="md:hidden fixed top-4 left-4 z-[60] p-2.5 bg-white border border-ink-100 rounded-xl shadow-sm text-ink-900 hover:bg-cream-50 transition-colors"
+        aria-label="Abrir menu"
+      >
+        <Menu className="w-5 h-5" />
+      </button>
+
+      {/* Desktop sidebar */}
+      <aside className="hidden md:flex w-64 bg-white border-r border-ink-100 min-h-screen flex-col">
+        {sidebarContent}
+      </aside>
+
+      {/* Mobile overlay */}
+      {mobileOpen && (
+        <div 
+          className="md:hidden fixed inset-0 bg-black/40 backdrop-blur-sm z-[70]"
+          onClick={() => setMobileOpen(false)}
+        />
+      )}
+
+      {/* Mobile drawer */}
+      <aside 
+        className={cn(
+          "md:hidden fixed top-0 left-0 h-full w-72 bg-white z-[80] flex flex-col shadow-2xl transition-transform duration-300 ease-out",
+          mobileOpen ? "translate-x-0" : "-translate-x-full"
+        )}
+      >
+        {sidebarContent}
+      </aside>
+    </>
   );
 }

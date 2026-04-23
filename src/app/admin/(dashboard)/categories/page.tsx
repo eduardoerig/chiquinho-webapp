@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useMemo, useCallback } from "react";
 import { createClient } from "@/utils/supabase/client";
-import { Plus, Edit2, Trash2, Search, X, Save } from "lucide-react";
+import { Plus, Edit2, Trash2, Search, X, Save, Loader2 } from "lucide-react";
 
 interface Category {
   id: string;
@@ -11,9 +11,20 @@ interface Category {
   created_at?: string;
 }
 
+function slugify(text: string): string {
+  return text
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9\s-]/g, "")
+    .trim()
+    .replace(/\s+/g, "-");
+}
+
 export default function CategoriesAdmin() {
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
+  const [searchTerm, setSearchTerm] = useState("");
   const supabase = useMemo(() => createClient(), []);
 
   // Modal states
@@ -37,25 +48,14 @@ export default function CategoriesAdmin() {
   }, [supabase]);
 
   useEffect(() => {
-    void (async () => {
-      const { data, error } = await supabase
-        .from('categories')
-        .select('*')
-        .order('created_at', { ascending: false });
-      if (error) {
-        console.error(error);
-        alert(`Erro ao buscar categorias: ${error.message}`);
-      }
-      if (data) setCategories(data);
-      setLoading(false);
-    })();
-  }, [supabase]);
+    fetchCategories();
+  }, [fetchCategories]);
 
   async function handleDelete(id: string) {
-    if (confirm("Tem certeza que deseja excluir esta categoria?")) {
+    if (confirm("Tem certeza que deseja excluir esta categoria? Produtos associados ficarão sem categoria.")) {
       const { error } = await supabase.from('categories').delete().eq('id', id);
       if (error) alert(`Erro ao excluir: ${error.message}`);
-      fetchCategories();
+      else fetchCategories();
     }
   }
 
@@ -76,7 +76,23 @@ export default function CategoriesAdmin() {
     setIsModalOpen(true);
   }
 
+  function handleLabelChange(value: string) {
+    setFormData({
+      label: value,
+      slug: modalMode === "create" ? slugify(value) : formData.slug
+    });
+  }
+
   async function handleSaveCategory() {
+    if (!formData.label.trim()) {
+      alert("O nome da categoria é obrigatório.");
+      return;
+    }
+    if (!formData.slug.trim()) {
+      alert("O slug é obrigatório.");
+      return;
+    }
+
     setIsSaving(true);
     let errorResult;
 
@@ -99,6 +115,16 @@ export default function CategoriesAdmin() {
     }
   }
 
+  const filteredCategories = useMemo(() => {
+    return categories.filter(cat => {
+      const search = searchTerm.toLowerCase();
+      return (
+        cat.label.toLowerCase().includes(search) ||
+        cat.slug.toLowerCase().includes(search)
+      );
+    });
+  }, [categories, searchTerm]);
+
   return (
     <>
     <div className="space-y-6">
@@ -117,15 +143,20 @@ export default function CategoriesAdmin() {
       </div>
 
       <div className="bg-white border border-ink-100 rounded-2xl shadow-sm overflow-hidden flex flex-col">
-        <div className="p-4 border-b border-ink-100 flex items-center gap-3">
+        <div className="p-4 border-b border-ink-100 flex items-center justify-between gap-3">
           <div className="relative flex-1 max-w-md">
             <Search className="w-5 h-5 absolute left-3 top-1/2 -translate-y-1/2 text-ink-300" />
             <input 
               type="text" 
-              placeholder="Buscar..." 
+              placeholder="Buscar categorias..." 
+              value={searchTerm}
+              onChange={e => setSearchTerm(e.target.value)}
               className="w-full pl-10 pr-4 py-2 border border-ink-200 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-brand-red focus:border-brand-red"
             />
           </div>
+          <span className="text-xs text-ink-400 font-medium whitespace-nowrap">
+            {filteredCategories.length} {filteredCategories.length === 1 ? 'categoria' : 'categorias'}
+          </span>
         </div>
 
         <div className="overflow-x-auto">
@@ -139,29 +170,34 @@ export default function CategoriesAdmin() {
             </thead>
             <tbody className="divide-y divide-ink-100">
               {loading ? (
-                <tr><td colSpan={3} className="p-8 text-center text-ink-400">Carregando categorias...</td></tr>
-              ) : categories.length === 0 ? (
-                <tr><td colSpan={3} className="p-8 text-center text-ink-400">Nenhuma categoria cadastrada.</td></tr>
+                <tr><td colSpan={3} className="p-8 text-center text-ink-400">
+                  <Loader2 className="w-6 h-6 animate-spin mx-auto mb-2 text-brand-red" />
+                  Carregando categorias...
+                </td></tr>
+              ) : filteredCategories.length === 0 ? (
+                <tr><td colSpan={3} className="p-8 text-center text-ink-400">Nenhuma categoria encontrada.</td></tr>
               ) : (
-                categories.map((category) => (
+                filteredCategories.map((category) => (
                   <tr key={category.id} className="hover:bg-cream-50/50 transition-colors">
                     <td className="px-6 py-4">
                       <p className="font-bold text-ink-900 text-sm">{category.label}</p>
                     </td>
                     <td className="px-6 py-4 text-sm text-ink-500">
-                      <code>{category.slug}</code>
+                      <code className="bg-ink-100/50 px-2 py-0.5 rounded text-xs">{category.slug}</code>
                     </td>
                     <td className="px-6 py-4 text-right">
                       <div className="flex items-center justify-end gap-2">
                         <button 
                           onClick={() => openEditModal(category)}
                           className="p-2 text-ink-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                          title="Editar"
                         >
                           <Edit2 className="w-4 h-4" />
                         </button>
                         <button 
                           onClick={() => handleDelete(category.id)}
                           className="p-2 text-ink-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                          title="Excluir"
                         >
                           <Trash2 className="w-4 h-4" />
                         </button>
@@ -178,8 +214,8 @@ export default function CategoriesAdmin() {
 
       {/* Modal */}
       {isModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-ink-900/50 backdrop-blur-sm">
-          <div className="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden flex flex-col max-h-[90vh]">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-ink-900/50 backdrop-blur-sm" onClick={() => setIsModalOpen(false)}>
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden flex flex-col max-h-[90vh]" onClick={e => e.stopPropagation()}>
             <div className="p-6 border-b border-ink-100 flex items-center justify-between">
               <h2 className="text-xl font-bold text-ink-900">
                 {modalMode === 'create' ? 'Nova Categoria' : 'Editar Categoria'}
@@ -198,9 +234,10 @@ export default function CategoriesAdmin() {
                 <input 
                   type="text" 
                   value={formData.label}
-                  onChange={e => setFormData({...formData, label: e.target.value})}
+                  onChange={e => handleLabelChange(e.target.value)}
                   placeholder="Ex: Milk Shakes"
                   className="w-full px-4 py-2 border border-ink-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-red/20 focus:border-brand-red"
+                  autoFocus
                 />
               </div>
               
@@ -211,9 +248,9 @@ export default function CategoriesAdmin() {
                   value={formData.slug}
                   onChange={e => setFormData({...formData, slug: e.target.value})}
                   placeholder="Ex: milk-shakes"
-                  className="w-full px-4 py-2 border border-ink-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-red/20 focus:border-brand-red"
+                  className="w-full px-4 py-2 border border-ink-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-red/20 focus:border-brand-red font-mono text-sm"
                 />
-                <p className="text-xs text-ink-400 mt-1">Como vai aparecer no link. Use apenas letras minúsculas, sem acentos, separadas por hífen.</p>
+                <p className="text-xs text-ink-400 mt-1">Gerado automaticamente. Use letras minúsculas, sem acentos, separadas por hífen.</p>
               </div>
             </div>
 
@@ -226,10 +263,10 @@ export default function CategoriesAdmin() {
               </button>
               <button 
                 onClick={handleSaveCategory}
-                disabled={isSaving}
+                disabled={isSaving || !formData.label.trim()}
                 className="flex items-center gap-2 px-5 py-2.5 text-sm font-bold text-white bg-brand-red hover:bg-brand-red/90 rounded-xl transition-colors disabled:opacity-50"
               >
-                <Save className="w-4 h-4" />
+                {isSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
                 {isSaving ? 'Salvando...' : 'Salvar'}
               </button>
             </div>
