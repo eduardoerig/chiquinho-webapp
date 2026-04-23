@@ -2,7 +2,7 @@
 import React from "react";
 
 export type MenuItem = {
-  id: number;
+  id: string | number;
   category: string;
   title: string;
   desc: string;

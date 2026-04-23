@@ -2,9 +2,17 @@
 
 import Image from "next/image";
 import { motion, useInView } from "framer-motion";
-import { useRef } from "react";
+import { useRef, useState, useEffect } from "react";
+import { createClient } from "@/utils/supabase/client";
 
-const destaques = [
+interface DestaqueItem {
+  id: string | number;
+  name: string;
+  tag: string;
+  image: string;
+}
+
+const defaultDestaques: DestaqueItem[] = [
   { id: 1, name: "Shake Mix Frutas Vermelhas", tag: "Novidade", image: "/imagens_originais/produtos_capa_shakemix_01.png" },
   { id: 2, name: "Cascão Trufado", tag: "Mais Pedido", image: "/imagens_originais/cardapio_1.png" },
   { id: 3, name: "Sundae Clássico", tag: "Tradicional", image: "/imagens_originais/cardapio_4.png" },
@@ -14,6 +22,28 @@ const destaques = [
 export function Destaques() {
   const ref = useRef(null);
   const isInView = useInView(ref, { once: true, margin: "-100px" });
+  const [items, setItems] = useState<DestaqueItem[]>(defaultDestaques);
+
+  useEffect(() => {
+    async function fetchDestaques() {
+      const supabase = createClient();
+      const { data } = await supabase
+        .from('products')
+        .select('*')
+        .eq('is_featured', true)
+        .order('created_at', { ascending: false });
+
+      if (data && data.length > 0) {
+        setItems(data.map(p => ({
+          id: p.id,
+          name: p.title,
+          tag: p.tag || 'Destaque',
+          image: p.image_url || '/imagens_originais/cardapio_1.png'
+        })));
+      }
+    }
+    fetchDestaques();
+  }, []);
 
   return (
     <section id="destaques" className="py-24 bg-white overflow-hidden perspective-1000">
@@ -36,7 +66,7 @@ export function Destaques() {
         </motion.div>
 
         <div className="flex overflow-x-auto gap-6 pb-12 snap-x snap-mandatory pt-4 px-4 -mx-4 hide-scrollbar">
-          {destaques.map((item, i) => (
+          {items.map((item, i) => (
             <motion.div 
               key={item.id}
               initial={{ opacity: 0, y: 50, rotateX: -10 }}

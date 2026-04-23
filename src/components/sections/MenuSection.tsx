@@ -1,20 +1,34 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect, useMemo } from "react";
 import Image from "next/image";
 import { PremiumMenuTemplate } from "@/components/ui/PremiumMenuTemplate";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
+import { createClient } from "@/utils/supabase/client";
 
-const menuItems = [
-  { id: 1, category: "shake-mix", title: "Shake Mix Clássico", desc: "Camadas de sorvete, calda e toppings", img: "/imagens_originais/produtos_capa_shakemix_01.png" },
-  { id: 2, category: "casquinha", title: "Cascão Recheado", desc: "Crocante, recheado com sorvete e cobertura", img: "/imagens_originais/cardapio_1.png" },
-  { id: 3, category: "sundae", title: "Sundae", desc: "Sorvete Chiquinho com calda quente", img: "/imagens_originais/cardapio_4.png" },
-  { id: 4, category: "top-mix", title: "Milkshake Chocotino", desc: "Sabor exclusivo", img: "/imagens_originais/chiquinho_milkshake_chocotino.png" },
-  { id: 5, category: "shake-mix", title: "Shake Mix KitKat", desc: "A pausa perfeita com KitKat", img: "/imagens_originais/chiquinho-banner-kitkat-selo-02-1.png" }
+interface MenuItem {
+  id: string;
+  category: string;
+  title: string;
+  desc: string;
+  img: string;
+}
+
+interface CategoryItem {
+  id: string;
+  label: string;
+}
+
+const defaultMenuItems: MenuItem[] = [
+  { id: "1", category: "shake-mix", title: "Shake Mix Clássico", desc: "Camadas de sorvete, calda e toppings", img: "/imagens_originais/produtos_capa_shakemix_01.png" },
+  { id: "2", category: "casquinha", title: "Cascão Recheado", desc: "Crocante, recheado com sorvete e cobertura", img: "/imagens_originais/cardapio_1.png" },
+  { id: "3", category: "sundae", title: "Sundae", desc: "Sorvete Chiquinho com calda quente", img: "/imagens_originais/cardapio_4.png" },
+  { id: "4", category: "top-mix", title: "Milkshake Chocotino", desc: "Sabor exclusivo", img: "/imagens_originais/chiquinho_milkshake_chocotino.png" },
+  { id: "5", category: "shake-mix", title: "Shake Mix KitKat", desc: "A pausa perfeita com KitKat", img: "/imagens_originais/chiquinho-banner-kitkat-selo-02-1.png" }
 ];
 
-const categories = [
+const defaultCategories: CategoryItem[] = [
   { id: "all", label: "Todos" },
   { id: "shake-mix", label: "Shake Mix" },
   { id: "casquinha", label: "Casquinha e Cascão" },
@@ -24,12 +38,41 @@ const categories = [
 
 export function MenuSection() {
   const [activeFilter, setActiveFilter] = useState("all");
+  const [items, setItems] = useState<MenuItem[]>(defaultMenuItems);
+  const [cats, setCats] = useState<CategoryItem[]>(defaultCategories);
   const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
   const pdfRef = useRef<HTMLDivElement>(null);
+  const supabase = useMemo(() => createClient(), []);
+
+  useEffect(() => {
+    async function fetchData() {
+      // Fetch Categorias
+      const { data: categoriesData } = await supabase.from('categories').select('*').order('created_at', { ascending: true });
+      if (categoriesData && categoriesData.length > 0) {
+        setCats([
+          { id: "all", label: "Todos" },
+          ...categoriesData.map(c => ({ id: c.slug as string, label: c.label as string }))
+        ]);
+      }
+
+      // Fetch Produtos
+      const { data: productsData } = await supabase.from('products').select('*, categories(slug)');
+      if (productsData && productsData.length > 0) {
+        setItems(productsData.map(p => ({
+          id: p.id as string,
+          category: (p.categories as { slug: string } | null)?.slug || 'geral',
+          title: p.title as string,
+          desc: (p.description as string) || '',
+          img: (p.image_url as string) || '/imagens_originais/cardapio_1.png'
+        })));
+      }
+    }
+    fetchData();
+  }, [supabase]);
 
   const filteredItems = activeFilter === "all" 
-    ? menuItems 
-    : menuItems.filter(item => item.category === activeFilter);
+    ? items 
+    : items.filter(item => item.category === activeFilter);
 
   const handleDownloadPDF = async (e: React.MouseEvent) => {
     e.preventDefault();
@@ -80,7 +123,7 @@ export function MenuSection() {
 
         {/* Filters */}
         <div className="flex overflow-x-auto pb-4 -mx-6 px-6 md:mx-0 md:px-0 md:flex-wrap md:justify-center gap-2 mb-8 md:mb-10 snap-x snap-mandatory scrollbar-hide">
-          {categories.map((cat) => (
+          {cats.map((cat) => (
             <button
               key={cat.id}
               onClick={() => setActiveFilter(cat.id)}
@@ -135,7 +178,7 @@ export function MenuSection() {
 
       {/* Template PDF Oculto (fora da tela) */}
       <div className="absolute top-0 opacity-0 pointer-events-none -z-50" style={{ left: '-9999px' }}>
-        <PremiumMenuTemplate ref={pdfRef} items={menuItems} />
+        <PremiumMenuTemplate ref={pdfRef} items={items} />
       </div>
     </section>
   );

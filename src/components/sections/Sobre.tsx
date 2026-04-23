@@ -28,7 +28,7 @@ export function Sobre() {
             
             <div className="space-y-6 text-ink-500 text-lg leading-relaxed mb-10">
               <p>
-                Tudo começou na década de 80, em Frutal/MG, quando o <strong className="text-ink-900 font-bold">\"Seu Francisco\"</strong>, apelidado carinhosamente de Chiquinho, abriu uma modesta sorveteria.
+                Tudo começou na década de 80, em Frutal/MG, quando o <strong className="text-ink-900 font-bold">&ldquo;Seu Francisco&rdquo;</strong>, apelidado carinhosamente de Chiquinho, abriu uma modesta sorveteria.
               </p>
               <p>
                 O que era um pequeno negócio familiar prosperou graças a uma <strong className="text-brand-red font-bold">receita secreta</strong> de um sorvete macio, saboroso e inconfundível. Da invenção e do primeiro batedor de sorvetes feito à mão, a paixão só cresceu.
