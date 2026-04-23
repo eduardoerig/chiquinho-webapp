@@ -1,6 +1,8 @@
 import React from "react";
 import { PremiumMenuTemplate } from "@/components/ui/PremiumMenuTemplate";
 
+export const dynamic = "force-dynamic";
+
 const mockItems = [
   { id: 1, category: "shake-mix", title: "Shake Mix Clássico", desc: "Camadas de sorvete, calda e toppings", img: "/imagens_originais/produtos_capa_shakemix_01.png" },
   { id: 2, category: "casquinha", title: "Cascão Recheado", desc: "Crocante, recheado com sorvete e cobertura", img: "/imagens_originais/cardapio_1.png" },
