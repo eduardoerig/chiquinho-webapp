@@ -45,6 +45,8 @@ export default function CategoriesAdmin() {
     }
     if (data) setCategories(data);
     setLoading(false);
+
+
   }, [supabase]);
 
   useEffect(() => {

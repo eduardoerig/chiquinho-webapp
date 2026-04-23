@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { motion, useScroll, useTransform } from "framer-motion";
+import { motion, useScroll, useTransform, MotionValue } from "framer-motion";
 import { useRef, useState } from "react";
 
 interface HeroProps {
@@ -132,7 +132,7 @@ export function Hero({ settings }: HeroProps) {
 interface HeroProductProps {
   product: (typeof heroProducts)[number];
   index: number;
-  yMotion: ReturnType<typeof useTransform>;
+  yMotion: MotionValue<number>;
 }
 
 function HeroProduct({ product, index, yMotion }: HeroProductProps) {
