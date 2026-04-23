@@ -6,6 +6,8 @@ import { getSettings } from "@/utils/settings";
 import { FranchiseProvider } from "@/context/FranchiseContext";
 import Script from "next/script";
 
+export const dynamic = "force-dynamic";
+
 const dmSans = DM_Sans({
   subsets: ["latin"],
   variable: "--font-dm-sans",
