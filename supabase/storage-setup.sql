@@ -1,31 +1,35 @@
--- Criar o bucket para produtos se não existir
+-- Criar bucket de storage para os assets do site (se não existir)
 INSERT INTO storage.buckets (id, name, public)
-VALUES ('products', 'products', true)
+VALUES ('site-assets', 'site-assets', true)
 ON CONFLICT (id) DO NOTHING;
 
--- Política para permitir que qualquer pessoa veja as imagens (Público)
-DROP POLICY IF EXISTS "Imagens de produtos são públicas" ON storage.objects;
-CREATE POLICY "Imagens de produtos são públicas"
-ON storage.objects FOR SELECT
-USING (bucket_id = 'products');
+-- (RLS já é habilitado por padrão no Supabase para storage.objects)
 
--- Política para permitir que usuários autenticados façam upload
-DROP POLICY IF EXISTS "Usuários autenticados podem subir imagens" ON storage.objects;
-CREATE POLICY "Usuários autenticados podem subir imagens"
+-- Remover políticas antigas para evitar duplicação (se você for rodar o script novamente)
+DROP POLICY IF EXISTS "Public Access" ON storage.objects;
+DROP POLICY IF EXISTS "Auth Upload" ON storage.objects;
+DROP POLICY IF EXISTS "Auth Update" ON storage.objects;
+DROP POLICY IF EXISTS "Auth Delete" ON storage.objects;
+
+-- Permitir acesso público de leitura para o bucket "site-assets"
+CREATE POLICY "Public Access"
+ON storage.objects FOR SELECT
+USING (bucket_id = 'site-assets');
+
+-- Permitir upload para usuários autenticados no bucket "site-assets"
+CREATE POLICY "Auth Upload"
 ON storage.objects FOR INSERT
 TO authenticated
-WITH CHECK (bucket_id = 'products');
+WITH CHECK (bucket_id = 'site-assets');
 
--- Política para permitir que usuários autenticados atualizem suas imagens
-DROP POLICY IF EXISTS "Usuários autenticados podem editar imagens" ON storage.objects;
-CREATE POLICY "Usuários autenticados podem editar imagens"
+-- Permitir update para usuários autenticados no bucket "site-assets"
+CREATE POLICY "Auth Update"
 ON storage.objects FOR UPDATE
 TO authenticated
-USING (bucket_id = 'products');
+USING (bucket_id = 'site-assets');
 
--- Política para permitir que usuários autenticados deletem imagens
-DROP POLICY IF EXISTS "Usuários autenticados podem deletar imagens" ON storage.objects;
-CREATE POLICY "Usuários autenticados podem deletar imagens"
+-- Permitir delete para usuários autenticados no bucket "site-assets"
+CREATE POLICY "Auth Delete"
 ON storage.objects FOR DELETE
 TO authenticated
-USING (bucket_id = 'products');
+USING (bucket_id = 'site-assets');

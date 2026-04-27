@@ -15,6 +15,7 @@ interface DestaqueItem {
 
 interface DestaquesProps {
   settings?: Record<string, string>;
+  props?: Record<string, unknown>;
 }
 
 const defaultDestaques: DestaqueItem[] = [
@@ -24,7 +25,7 @@ const defaultDestaques: DestaqueItem[] = [
   { id: 4, name: "Shake Mix Chocotino", tag: "Crocante", image: "/imagens_originais/chiquinho_milkshake_chocotino.png" },
 ];
 
-export function Destaques({ settings }: DestaquesProps) {
+export function Destaques({ settings, props: editorProps }: DestaquesProps) {
   const ref = useRef(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const isInView = useInView(ref, { once: true, margin: "-100px" });
@@ -41,8 +42,8 @@ export function Destaques({ settings }: DestaquesProps) {
     setActiveIndex(Math.min(index, items.length - 1));
   };
 
-  const title = settings?.destaques_title || "Nossos Queridinhos";
-  const subtitle = settings?.destaques_subtitle || "Descubra os sabores que fazem a fama da Chiquinho em todo o país.";
+  const title = (editorProps?.title as string) || "Nossos Queridinhos";
+  const subtitle = (editorProps?.subtitle as string) || "Descubra os sabores que fazem a fama da Chiquinho em todo o país.";
 
   useEffect(() => {
     async function fetchDestaques() {

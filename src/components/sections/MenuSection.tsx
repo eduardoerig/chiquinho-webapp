@@ -23,6 +23,7 @@ interface CategoryItem {
 
 interface MenuSectionProps {
   settings?: Record<string, string>;
+  props?: Record<string, unknown>;
 }
 
 const defaultMenuItems: MenuItem[] = [
@@ -41,7 +42,7 @@ const defaultCategories: CategoryItem[] = [
   { id: "top-mix", label: "Top Mix" }
 ];
 
-export function MenuSection({ settings }: MenuSectionProps) {
+export function MenuSection({ settings, props: editorProps }: MenuSectionProps) {
   const [activeFilter, setActiveFilter] = useState("all");
   const [items, setItems] = useState<MenuItem[]>(defaultMenuItems);
   const [cats, setCats] = useState<CategoryItem[]>(defaultCategories);
@@ -50,8 +51,8 @@ export function MenuSection({ settings }: MenuSectionProps) {
   const pdfRef = useRef<HTMLDivElement>(null);
   const supabase = useMemo(() => createClient(), []);
 
-  const title = settings?.menu_title || "Explore nosso Cardápio";
-  const subtitle = settings?.menu_subtitle || "Mais de 100 opções preparadas com carinho para você.";
+  const title = (editorProps?.title as string) || "Explore nosso Cardápio";
+  const subtitle = (editorProps?.subtitle as string) || "Mais de 100 opções preparadas com carinho para você.";
 
   useEffect(() => {
     async function fetchData() {

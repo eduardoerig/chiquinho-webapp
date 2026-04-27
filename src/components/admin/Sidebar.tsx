@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, IceCream, Tags, Users, Settings, LogOut, ExternalLink, Menu, X } from "lucide-react";
+import { LayoutDashboard, IceCream, Tags, Users, Settings, LogOut, ExternalLink, Menu, X, Paintbrush } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { createClient } from "@/utils/supabase/client";
 import { useRouter } from "next/navigation";
@@ -10,6 +10,7 @@ import { useState, useEffect } from "react";
 
 const menuItems = [
   { name: "Visão Geral", icon: LayoutDashboard, path: "/admin" },
+  { name: "Editor de Página", icon: Paintbrush, path: "/admin/editor" },
   { name: "Produtos", icon: IceCream, path: "/admin/products" },
   { name: "Categorias", icon: Tags, path: "/admin/categories" },
   { name: "Leads (Franquia)", icon: Users, path: "/admin/leads" },

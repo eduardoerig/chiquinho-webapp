@@ -4,11 +4,18 @@ import Image from "next/image";
 import { motion, useScroll, useTransform, MotionValue } from "framer-motion";
 import { useRef, useState } from "react";
 
-interface HeroProps {
-  settings?: Record<string, string>;
+interface HeroProduct {
+  src: string;
+  alt: string;
+  description: string;
 }
 
-const heroProducts = [
+interface HeroProps {
+  settings?: Record<string, string>;
+  props?: Record<string, unknown>;
+}
+
+const defaultHeroProducts: HeroProduct[] = [
   {
     src: "/imagens_originais/cardapio_2.png",
     alt: "Açaí Premium",
@@ -26,7 +33,7 @@ const heroProducts = [
   },
 ];
 
-export function Hero({ settings }: HeroProps) {
+export function Hero({ settings, props: editorProps }: HeroProps) {
   const containerRef = useRef(null);
   const { scrollYProgress } = useScroll({
     target: containerRef,
@@ -38,8 +45,15 @@ export function Hero({ settings }: HeroProps) {
   const y3 = useTransform(scrollYProgress, [0, 1], [0, 40]);
   const opacity = useTransform(scrollYProgress, [0, 0.5], [1, 0]);
 
-  const title = settings?.hero_title || "O sabor que conquista o Brasil";
-  const subtitle = settings?.hero_subtitle || "Desde 1980, transformando sorvetes em momentos de felicidade.";
+  // Props do editor têm prioridade
+  const title = (editorProps?.title as string) || "O sabor que conquista o Brasil";
+  const subtitle = (editorProps?.subtitle as string) || "Desde 1980, transformando sorvetes em momentos de felicidade.";
+  const badge = (editorProps?.badge as string) || "Qualidade Premium";
+  const ctaText = (editorProps?.ctaText as string) || "Ver Cardápio";
+  const ctaLink = (editorProps?.ctaLink as string) || "#cardapio";
+  const ctaSecondaryText = (editorProps?.ctaSecondaryText as string) || "Mais Pedidos";
+  const ctaSecondaryLink = (editorProps?.ctaSecondaryLink as string) || "#destaques";
+  const heroProducts = (editorProps?.products as HeroProduct[]) || defaultHeroProducts;
 
   return (
     <section 
@@ -90,7 +104,7 @@ export function Hero({ settings }: HeroProps) {
             transition={{ delay: 0.7 }}
             className="inline-block text-brand-red font-bold text-xs uppercase tracking-[0.3em] mb-5 bg-brand-bg px-5 py-2.5 rounded-full border border-brand-red/10"
           >
-            Qualidade Premium
+            {badge}
           </motion.span>
           <h1 className="text-4xl md:text-6xl lg:text-7xl font-display font-black text-ink-900 tracking-tight leading-[0.9] mb-6">
             {title.split(' ').map((word, i) => (
@@ -106,18 +120,18 @@ export function Hero({ settings }: HeroProps) {
           </p>
           <div className="flex flex-col sm:flex-row items-center gap-4 justify-center">
             <a 
-              href="#cardapio" 
+              href={ctaLink} 
               className="group relative px-8 py-4 bg-brand-red text-white font-bold rounded-2xl shadow-brand hover:bg-brand-dark transition-all duration-300 flex items-center gap-2 overflow-hidden"
             >
-              <span className="relative z-10">Ver Cardápio</span>
+              <span className="relative z-10">{ctaText}</span>
               <svg className="w-5 h-5 relative z-10 transition-transform group-hover:translate-x-1" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
               <div className="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300" />
             </a>
             <a 
-              href="#destaques" 
+              href={ctaSecondaryLink} 
               className="px-8 py-4 border border-ink-100 bg-white/50 backdrop-blur-md text-ink-900 font-bold rounded-2xl hover:bg-white hover:border-brand-red transition-all duration-300"
             >
-              Mais Pedidos
+              {ctaSecondaryText}
             </a>
           </div>
         </motion.div>
@@ -130,7 +144,7 @@ export function Hero({ settings }: HeroProps) {
 
 /* ---- Componente de Produto com Tooltip ---- */
 interface HeroProductProps {
-  product: (typeof heroProducts)[number];
+  product: HeroProduct;
   index: number;
   yMotion: MotionValue<number>;
 }

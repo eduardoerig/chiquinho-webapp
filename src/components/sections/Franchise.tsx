@@ -7,15 +7,23 @@ import { useFranchiseModal } from "@/context/FranchiseContext";
 
 interface FranchiseProps {
   settings?: Record<string, string>;
+  props?: Record<string, unknown>;
 }
 
-export function Franchise({ settings }: FranchiseProps) {
+export function Franchise({ settings, props: editorProps }: FranchiseProps) {
   const ref = useRef(null);
   const isInView = useInView(ref, { once: true, margin: "-100px" });
   const { openModal } = useFranchiseModal();
 
-  const title = settings?.franchise_section_title || "Seja um Franqueado";
-  const description = settings?.franchise_section_description || "Faça parte da maior rede de sorveterias do Brasil e transforme o mercado de sobremesas na sua região.";
+  const title = (editorProps?.title as string) || "Seja um Franqueado";
+  const description = (editorProps?.description as string) || "Faça parte da maior rede de sorveterias do Brasil e transforme o mercado de sobremesas na sua região.";
+  const buttonText = (editorProps?.buttonText as string) || "Quero Abrir uma Unidade";
+  const imageSrc = (editorProps?.image as string) || "/imagens_originais/img_mapa-unidades.png.webp";
+  const stats = (editorProps?.stats as Array<{value: string; label: string}>) || [
+    { value: "700+", label: "Unidades" },
+    { value: "40+", label: "Anos de Sucesso" },
+  ];
+  const isHtml = description.includes("<");
 
   return (
     <section id="franquia" className="py-24 bg-brand-soft/20 relative overflow-hidden">
@@ -34,26 +42,28 @@ export function Franchise({ settings }: FranchiseProps) {
               <h2 className="text-3xl md:text-5xl lg:text-6xl font-display font-black text-ink-900 tracking-tight mb-8">
                 {title}
               </h2>
-              <p className="text-ink-500 text-lg leading-relaxed mb-10">
-                {description}
-              </p>
+              {isHtml ? (
+                <div className="text-ink-500 text-lg leading-relaxed mb-10" dangerouslySetInnerHTML={{ __html: description }} />
+              ) : (
+                <p className="text-ink-500 text-lg leading-relaxed mb-10">
+                  {description}
+                </p>
+              )}
               
               <div className="grid grid-cols-2 gap-6 mb-12">
-                <div>
-                  <div className="text-brand-red font-display font-black text-3xl mb-1">700+</div>
-                  <div className="text-ink-400 text-xs uppercase font-bold tracking-widest">Unidades</div>
-                </div>
-                <div>
-                  <div className="text-brand-red font-display font-black text-3xl mb-1">40+</div>
-                  <div className="text-ink-400 text-xs uppercase font-bold tracking-widest">Anos de Sucesso</div>
-                </div>
+                {stats.map((stat, i) => (
+                  <div key={i}>
+                    <div className="text-brand-red font-display font-black text-3xl mb-1">{stat.value}</div>
+                    <div className="text-ink-400 text-xs uppercase font-bold tracking-widest">{stat.label}</div>
+                  </div>
+                ))}
               </div>
 
               <button 
                 onClick={openModal}
                 className="group w-full sm:w-auto bg-brand-red text-white font-bold px-10 py-5 rounded-2xl shadow-brand hover:bg-brand-dark transition-all duration-300 flex items-center justify-center gap-3"
               >
-                <span>Quero Abrir uma Unidade</span>
+                <span>{buttonText}</span>
                 <svg className="w-5 h-5 transition-transform duration-300 group-hover:translate-x-1" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
               </button>
             </motion.div>
@@ -66,7 +76,7 @@ export function Franchise({ settings }: FranchiseProps) {
             >
               <div className="relative w-full h-full min-h-[240px] lg:min-h-[360px] rounded-2xl overflow-hidden">
                 <Image 
-                  src="/imagens_originais/img_mapa-unidades.png.webp" 
+                  src={imageSrc} 
                   alt="Mapa de unidades Chiquinho" 
                   fill
                   className="object-contain object-center" 

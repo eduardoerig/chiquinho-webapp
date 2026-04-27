@@ -6,14 +6,19 @@ import { useRef } from "react";
 
 interface SobreProps {
   settings?: Record<string, string>;
+  props?: Record<string, unknown>;
 }
 
-export function Sobre({ settings }: SobreProps) {
+export function Sobre({ settings, props: editorProps }: SobreProps) {
   const ref = useRef(null);
   const isInView = useInView(ref, { once: true, margin: "-100px" });
 
-  const title = settings?.history_title || "Nossa História";
-  const text = settings?.history_text || "A Chiquinho Sorvetes nasceu em 1980, em Frutal/MG, com o sonho de levar alegria através do sorvete mais saboroso e cremoso.";
+  const title = (editorProps?.title as string) || "Nossa História";
+  const text = (editorProps?.content as string) || "A Chiquinho Sorvetes nasceu em 1980, em Frutal/MG, com o sonho de levar alegria através do sorvete mais saboroso e cremoso.";
+  const buttonText = (editorProps?.buttonText as string) || "Conheça a história completa";
+  const buttonLink = (editorProps?.buttonLink as string) || "https://chiquinho.com.br/a-chiquinho/";
+  const imageSrc = (editorProps?.image as string) || "/imagens_originais/sobre-a-marca-primeira-chiquinho-01.png";
+  const isHtml = text.includes("<");
 
   return (
     <section id="sobre" className="py-24 bg-white relative overflow-hidden">
@@ -33,14 +38,18 @@ export function Sobre({ settings }: SobreProps) {
             </h2>
             
             <div className="space-y-6 text-ink-500 text-lg leading-relaxed mb-10">
-              {text.split('\n').map((paragraph, i) => (
-                <p key={i}>{paragraph}</p>
-              ))}
+              {isHtml ? (
+                <div dangerouslySetInnerHTML={{ __html: text }} />
+              ) : (
+                text.split('\n').map((paragraph, i) => (
+                  <p key={i}>{paragraph}</p>
+                ))
+              )}
             </div>
 
             <div className="flex gap-4">
-              <a href="https://chiquinho.com.br/a-chiquinho/" target="_blank" rel="noreferrer" className="group rounded-full bg-brand-bg text-brand-red font-bold px-8 py-4 flex items-center gap-2 hover:bg-brand-red hover:text-white transition-colors duration-300">
-                <span>Conheça a história completa</span>
+              <a href={buttonLink} target="_blank" rel="noreferrer" className="group rounded-full bg-brand-bg text-brand-red font-bold px-8 py-4 flex items-center gap-2 hover:bg-brand-red hover:text-white transition-colors duration-300">
+                <span>{buttonText}</span>
                 <svg className="w-5 h-5 transition-transform duration-300 group-hover:translate-x-1" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
               </a>
             </div>
@@ -55,7 +64,7 @@ export function Sobre({ settings }: SobreProps) {
             <div className="absolute inset-0 bg-cream-100 rounded-[30px] rotate-3 scale-105 z-0" />
             <div className="relative z-10 w-full overflow-hidden rounded-[40px] shadow-2xl flex flex-col items-center border-[8px] border-white">
               <Image 
-                src="/imagens_originais/sobre-a-marca-primeira-chiquinho-01.png" 
+                src={imageSrc} 
                 alt="História da Chiquinho" 
                 width={800} 
                 height={800} 

@@ -13,17 +13,7 @@ export type SettingKey =
   | 'marketing_ga_id' 
   | 'marketing_pixel_id' 
   | 'marketing_ifood_link'
-  | 'seo_description'
-  | 'hero_title'
-  | 'hero_subtitle'
-  | 'destaques_title'
-  | 'destaques_subtitle'
-  | 'history_title'
-  | 'history_text'
-  | 'menu_title'
-  | 'menu_subtitle'
-  | 'franchise_section_title'
-  | 'franchise_section_description';
+  | 'seo_description';
 
 /**
  * Busca todas as configurações do banco de dados e as retorna em um objeto chave-valor.

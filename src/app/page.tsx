@@ -1,14 +1,10 @@
 import { Navbar } from "@/components/layout/Navbar";
 import { Footer } from "@/components/layout/Footer";
-import { Hero } from "@/components/sections/Hero";
-import { Destaques } from "@/components/sections/Destaques";
-import { MenuSection } from "@/components/sections/MenuSection";
-import { Sobre } from "@/components/sections/Sobre";
-import { Franchise } from "@/components/sections/Franchise";
 import { WhatsAppButton } from "@/components/ui/WhatsAppButton";
-import { ScrollIndicator } from "@/components/ui/ScrollIndicator";
 import { getSettings } from "@/utils/settings";
+import { createClient } from "@/utils/supabase/server";
 import Image from "next/image";
+import { DynamicSections } from "@/components/layout/DynamicSections";
 
 export const dynamic = "force-dynamic";
 
@@ -52,21 +48,21 @@ export default async function Home() {
     );
   }
 
+  // Buscar layout do banco
+  const supabase = await createClient();
+  const { data: layout } = await supabase
+    .from("page_layouts")
+    .select("sections, is_published")
+    .eq("id", "home")
+    .single();
+
+  const sections = layout?.is_published ? layout.sections : null;
+
   return (
     <main className="min-h-screen bg-cream-50 selection:bg-brand-red selection:text-white">
       <Navbar settings={settings} />
       
-      <Hero settings={settings} />
-      
-      <ScrollIndicator />
-      
-      <Destaques settings={settings} />
-      
-      <MenuSection settings={settings} />
-      
-      <Sobre settings={settings} />
-      
-      <Franchise settings={settings} />
+      <DynamicSections sections={sections} settings={settings} />
       
       <WhatsAppButton phone={settings.contact_whatsapp} />
       <Footer />
